@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Форум ЛПГ — Превʼю</title>
+    <meta name="description" content="Превʼю шкільного форуму Львівської Правничої Гімназії (ЛПГ). Анімації, рейтинги, ролі, адмін-панель." />
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google OAuth -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+    
+    <style>
+        @import "tailwindcss";
+        /* ---------------- Design tokens (used by custom styles below and Tailwind config) ---------------- */
+        :root{
+            --bg:#eef6fb; --card:#ffffff; --muted:#6b7682; --accent:#3867d6; --accent-2:#ff9f43; /* Changed secondary accent for votes */
+            --radius:16px; --shadow:0 12px 30px rgba(31,41,55,0.08); --glass:rgba(255,255,255,0.6);
+            --anim-fast:220ms; --anim-mid:420ms;
+        }
+        /* Custom Tailwind Configuration */
+
+        /* ---------------- Global Custom Styles (for unique background effects) ---------------- */
+        * {box-sizing:border-box}
+        html,body{height:100%}
+        body{
+            margin:0;
+            font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            color:#0b1720;
+            overflow: auto;
+        }
+
+        .editor-toolbar {
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            padding: 6px;
+            border-radius: 10px;
+        }
+
+        .editor-toolbar .btn-ghost {
+            padding: 5px 8px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .editor-toolbar .btn-ghost:hover {
+            background: #e5e7eb;
+        }
+
+        #new-post-content {
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            resize: vertical;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* animated background (formulas + grid) */
+        .bg-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.08}
+        .grid-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:repeating-linear-gradient(180deg,rgba(0,0,0,0.02) 0 1px, transparent 1px 56px),repeating-linear-gradient(90deg,rgba(0,0,0,0.02) 0 1px, transparent 1px 56px);animation:moveGrid 30s linear infinite;opacity:0.08}
+        @keyframes moveGrid{from{background-position:0 0,0 0}to{background-position:1000px 1000px, -1000px -1000px}}
+
+        /* Custom card styling (for the glass effect hero) */
+        .hero-title-box {
+            background:var(--glass);
+            backdrop-filter:blur(10px);
+            -webkit-backdrop-filter:blur(10px);
+            border:1px solid rgba(255, 255, 255, 0.6);
+            padding:20px;
+            border-radius:18px;
+            display:inline-flex;
+            gap:16px;
+            align-items:center;
+        }
+
+        /* ---------------- Post Card Enhancements ---------------- */
+        .post {
+            transition: transform var(--anim-fast), box-shadow var(--anim-fast), opacity var(--anim-fast);
+        }
+        .post:hover{
+            transform:translateY(-4px);
+            box-shadow:0 18px 36px rgba(10,20,30,0.08);
+        }
+
+        #btn-login {
+            display: flex;
+        }
+
+        /* Vote Button Styling */
+        .arrow{
+            width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+            cursor:pointer;user-select:none;border:1px solid rgba(10,20,30,0.08);
+            background-color: white; transition: background var(--anim-fast), color var(--anim-fast);
+        }
+        .arrow:active{transform:scale(0.9)}
+        .arrow.up.active{background-color: var(--accent-2); border-color: var(--accent-2); color: white;}
+        .arrow.down.active{background-color: #ef4444; border-color: #ef4444; color: white;}
+        .score { transition: color var(--anim-fast); }
+        .arrow.up.active ~ .score { color: var(--accent-2); }
+        .arrow.down.active ~ .score { color: #ef4444; }
+
+        /* Custom buttons and fields */
+        button, input[type=text], select, textarea {
+            transition: all var(--anim-fast);
+        }
+       .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #6ea8ff);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(56, 103, 214, 0.3);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(56, 103, 214, 0.4);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+           border: .1px solid rgba(0, 0, 0, 0.534);
+            padding: 8px 12px;
+            border-radius: 6px;  
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-ghost:hover {
+            background: rgba(0,0,0,0.03);
+            border-color: rgba(10,20,30,0.12);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            transition: transform var(--anim-fast), box-shadow var(--anim-fast);
+        }
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(56, 103, 214, 0.3);
+        }
+
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #ffffff;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 10px 16px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #3c4043;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .google-btn:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+            border-color: #c0c0c0;
+        }
+
+        .google-icon {
+            width: 20px; /* adjust size */
+            height: 20px;
+        }
+
+
+
+
+        mark{background:gold;color:#000;padding:0 2px;border-radius:2px}
+
+        /* ---------------- Modals (Centralized) ---------------- */
+        .modal{
+            position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+            background:rgba(8,12,20,0.6);z-index:50;
+            opacity:0; transition:opacity var(--anim-fast);
+        }
+        .modal.active{opacity:1; display:flex;}
+        .modal .box{
+            width:920px;max-width:96%;background:var(--card);border-radius:var(--radius);
+            padding:24px;box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-height:90vh;overflow-y:auto; transform:scale(0.9); transition:transform var(--anim-fast);
+        }
+        .modal.active .box{transform:scale(1);}
+
+        /* Responsive Layouts */
+        @media(max-width:1024px){
+            .main-grid{grid-template-columns:1fr}
+        }
+        @media(max-width:640px){
+            .topbar{flex-direction:column; align-items:stretch;}
+            .search{width:100%}
+            .topbar > div:last-child { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+            .hero img{height:180px;}
+            .user-avatar { width: 32px; height: 32px; }
+        }
+
+        /* CONTACT CARD */
+        .contact-card {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.12);
+        }
+
+        /* HEADER */
+        .contact-card h3 {
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-bottom: 1.5rem;
+            color: #111;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        /* CONTACT INFO */
+        .contact-card .contact-info {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .contact-card .contact-info div {
+            margin-bottom: 0.6rem;
+        }
+
+        .contact-card .contact-info a {
+            color: #1a73e8;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .contact-card .contact-info a:hover {
+            text-decoration: underline;
+        }
+
+        /* WORKING HOURS */
+        .contact-card .working-hours p {
+            margin: 0;
+        }
+
+        /* SOCIAL ICONS */
+        .contact-card .socials {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .contact-card .socials a img {
+            width: 48px;
+            height: 48px;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            border-radius: 12px;
+        }
+
+        .contact-card .socials a img:hover {
+            transform: scale(1.1);
+            opacity: 0.85;
+        }
+
+        /* PRIVACY POLICY LINK */
+        .contact-card .privacy-policy {
+            margin-top: 1rem;
+        }
+
+        .contact-card .privacy-policy a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .contact-card .privacy-policy a:hover {
+            text-decoration: underline;
+        }
+
+        /* MAP */
+        .contact-card .map-container {
+            margin-top: 2rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .contact-card .map-container iframe {
+            width: 100%;
+            height: 300px;
+            border: 0;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 600px) {
+            .contact-card {
+                padding: 1.5rem;
+            }
+
+            .contact-card h3 {
+                font-size: 1.3rem;
+            }
+
+            .contact-card .socials a img {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- animated background SVG with formulas (subtle) -->
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="wrap mx-auto max-w-7xl px-4 py-8 relative z-10">
+        <!-- Hero Section -->
+        <div class="hero rounded-2xl overflow-hidden shadow-lg mb-6 relative">
+            <img src="assets/lpg_school.jpg" alt="ЛПГ — фото" class="w-full h-64 object-cover object-center filter saturate-105"/>
+            <div class="absolute inset-0 flex items-end p-5 bg-gradient-to-t from-black/20 to-transparent">
+                <div class="hero-title-box shadow-xl">
+                    <div class="w-14 h-14 rounded-xl bg-white flex items-center justify-center shadow-md">
+                         <img 
+                        src="assets/Logo.jpg" 
+                        class="w-full h-full object-contain object-center filter saturate-105"
+                        >
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 leading-tight">Форум Львівської правничої гімназії</h1>
+                        <div class="text-sm text-muted">Пропозиції, події, новини.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="topbar flex justify-between items-center gap-4 mb-4">
+            <div class="search flex-1 flex gap-2 items-center">
+                <input id="search" type="text" placeholder="Пошук по темі, тексту..." class="p-3 border-gray-200 rounded-xl focus:ring-primary focus:border-primary w-full shadow-sm" />
+                <select id="sort" class="p-3 border-gray-200 rounded-xl shadow-sm">
+                    <option value="new">🆕 Нові</option>
+                    <option value="top">🔥 Топ (Оцінка)</option>
+                    <option value="hot">📈 Популярні (Обговорення)</option>
+                </select>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button id="btn-new-post" class="btn-primary">Створити пост</button>
+                <button id="btn-admin" class="btn-ghost">Адмін-панель</button>
+
+                <div id="user-profile-section" class="hidden flex items-center gap-3">
+                    <button id="btn-profile" >
+                        <img id="user-avatar" class="user-avatar" src="" alt="Profile"/>
+                    </button>
+                    <button id="btn-logout" class="btn-ghost text-red-600" onclick="signOut()">Вихід</button>
+                </div>
+
+                <!-- Google Login Button (shown when logged out) -->
+               <button id="btn-login" class="google-btn">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" 
+                        alt="Google Logo" class="google-icon">
+                    <span>Увійти з Google</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid grid lg:grid-cols-[1fr_340px] gap-6">
+            <section class="bg-white rounded-xl p-4 shadow-lg">
+                <div id="posts-list" class="space-y-4 mt-1">
+                    <!-- Posts will be rendered here -->
+                </div>
+            </section>
+
+            <aside class="space-y-4">
+                <div class="bg-white rounded-xl p-4 shadow-lg fade-in">
+                    <h3 class="font-semibold text-lg mb-3">Швидкий перегляд</h3>
+                    <div id="quick-tags" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-lg">
+                    <h3 class="font-semibold text-lg mb-3">Статистика</h3>
+                    <div class="text-sm text-muted space-y-1">
+                        <div>Користувачів: <strong id="stat-users" class="text-gray-900">0</strong></div>
+                        <div>Пости сьогодні: <strong id="stat-today" class="text-gray-900">0</strong></div>
+                    </div>
+                    <div class="mt-3"><button id="btn-analytics" class="btn-ghost w-full">Переглянути аналітику</button></div>
+                </div>
+
+               <!-- CONTACT SECTION -->
+               <!-- CONTACT SECTION -->
+                <div class="contact-card">
+                    <h3>Контакти</h3>
+                    <div class="contact-info">
+                        <div>Львівська правнича гімназія (ЛПГ)</div>
+                        <div>Email: <a href="mailto:lvivskapravnycha@gmail.com">lvivskapravnycha@gmail.com</a></div>
+                        <div>Бухгалтерія: +380 32 233 6096</div>
+                        <div>Viber: +380 97 543 8264</div>
+                        <div>Телефон: +380 32 233 3563</div>
+                        <div>Адреса: 790007 м. Львів, вул. Леонтовича, 2</div>
+                        <div class="working-hours">Години роботи:
+                            <p>Понеділок - П'ятниця: 9:00 - 18:00</p>
+                            <p>Субота - Неділя: вихідний</p>
+                        </div>
+                    </div>
+
+                    <div class="privacy-policy">
+                        <a href="#">Політика конфіденційності</a>
+                    </div>
+
+                    <div class="socials">
+                        <a href="https://www.facebook.com/lpg.school/?locale=uk_UA"><img src="assets/facebook.png" alt="Facebook"></a>
+                        <a href="https://www.instagram.com/pravnycha/"><img src="assets/instagram.png" alt="Instagram"></a>
+                        <a href="https://www.youtube.com/channel/UCDckzy7ypU3s3XxuFaG0hEQ/videos"><img src="assets/youtube.png" alt="YouTube"></a>
+                    </div>
+
+                    <div class="map-container">
+                        <iframe src="https://www.google.com/maps?q=49.843194,24.018556&hl=uk&z=17&output=embed" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                </div>
+
+
+
+            </aside>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-8 p-6 bg-white/60 backdrop-blur-sm rounded-xl shadow-lg border border-white/80">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <strong class="text-lg">Форум ЛПГ</strong>
+                    <div class="text-sm text-muted">© ЛПГ — 2025. Усі права збережено.</div>
+                </div>
+                <div class="flex gap-4 text-sm">
+                    <a href="#" class="text-primary hover:underline">Про школу</a>
+                    <span class="text-muted">|</span>
+                    <a href="#" class="text-primary hover:underline">Контакти</a>
+                    <span class="text-muted">|</span>
+                    <a href="#" class="text-primary hover:underline">Підтримка</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MAIN MODAL CONTAINER (for all forms, panels, etc.) -->
+    <div id="modal" class="modal" aria-hidden="true">
+        <div class="box">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                <h3 id="modal-title" class="text-xl font-bold">Модальне</h3>
+                <div><button id="modal-close" class="text-muted hover:text-gray-900 p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button></div>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Custom Alert/Confirm Modal (for non-obtrusive messages) -->
+    <div id="custom-dialog" class="modal" aria-hidden="true">
+        <div class="box !w-auto max-w-sm p-6">
+            <h4 id="dialog-title" class="text-lg font-semibold mb-3">Сповіщення</h4>
+            <div id="dialog-message" class="text-gray-600 mb-4"></div>
+            <div id="dialog-actions" class="flex justify-end gap-3"></div>
+        </div>
+    </div>
+
+    <script type="module" src="js/forum.module.js"></script>
+    <script type="module" src="js/background.js"></script>
+
+</body>
+</html>

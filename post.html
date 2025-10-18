@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пост</title>
+<style>
+  body{font-family:Inter,Arial,sans-serif;background:#f3f4f6;margin:0;}
+  .container{max-width:900px;margin:30px auto;padding:0 20px;}
+  .card{background:#fff;border-radius:14px;padding:24px;box-shadow:0 6px 20px rgba(0,0,0,0.08);}
+  .title{font-size:28px;font-weight:800;margin-bottom:10px;}
+  .meta{color:#6b7280;font-size:14px;margin-bottom:20px;}
+  .content{font-size:17px;line-height:1.7;}
+  .vote{display:flex;gap:10px;margin-bottom:20px;align-items:center;}
+  .vote button{padding:6px 12px;border-radius:6px;border:none;cursor:pointer;}
+  .vote .up{background:#dbeafe;color:#2563eb;}
+  .vote .down{background:#fee2e2;color:#dc2626;}
+</style>
+<script type="module">
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBmP1t_kDe5A2QpX5ltDCPoP5L6hVoPUpI",
+        authDomain: "school-forum-5315d.firebaseapp.com",
+        projectId: "school-forum-5315d",
+        storageBucket: "school-forum-5315d.firebasestorage.app",
+        messagingSenderId: "981547461443",
+        appId: "1:981547461443:web:effbdbefe7ade814351df6",
+        measurementId: "G-RGRWSREN5D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+     
+
+  async function loadPost(){
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    if(!id) return;
+
+    const snap = await getDoc(doc(db,"posts",id));
+    if(!snap.exists()){ 
+      document.querySelector(".container").innerHTML="<h2>Пост не знайдено</h2>";
+      return;
+    }
+    const post = snap.data();
+
+    document.getElementById("title").textContent = post.title;
+    document.getElementById("meta").textContent = `Автор: ${post.authorName} · ${new Date(post.created).toLocaleString("uk-UA")}`;
+    document.getElementById("content").innerHTML = post.content;
+    document.getElementById("score").textContent = post.score || 0;
+
+    document.getElementById("btn-up").onclick = ()=>vote(id,1);
+    document.getElementById("btn-down").onclick = ()=>vote(id,-1);
+  }
+
+  async function vote(id,val){
+    console.log("vote",id,val);
+  }
+
+  loadPost();
+</script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1 class="title" id="title"></h1>
+      <div class="meta" id="meta"></div>
+      <div class="vote">
+        <button class="up" id="btn-up">▲</button>
+        <div id="score">0</div>
+        <button class="down" id="btn-down">▼</button>
+      </div>
+      <div class="content" id="content"></div>
+    </div>
+  </div>
+</body>
+</html>
