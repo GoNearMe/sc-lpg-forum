@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Авторизація...</title>
+  <script type="module">
+    import { handleGoogleRedirect } from './auth.js';
+    import { getAllUsers, setCurrentUser } from './utility.js'; // adjust if needed
+
+    // Wait until page is ready, then complete login
+    window.addEventListener('DOMContentLoaded', async () => {
+      const usersCache = await getAllUsers?.() || [];
+      await handleGoogleRedirect(usersCache, (u) => {
+        window.localStorage.setItem('lpg_current_user', JSON.stringify(u));
+      });
+      window.location.href = '/'; // redirect back to home/forum
+    });
+  </script>
+</head>
+<body>
+  <h2 style="text-align:center; margin-top:40px;">Виконується вхід через Google...</h2>
+</body>
+</html>
