@@ -22,7 +22,7 @@ import {
 import { firebaseConfig } from "./config.js";
 import { GOOGLE_CLIENT_ID, defaultRoles, defaultSections, uid, escapeHtml, highlight, escapeReg, addTo, setDocById, updateDocByIdLocal, deleteDocByIdLocal, writeAudit } from "./utility.js";
 import { showCustomAlert, showCustomConfirm, showCustomDialog } from "./ui.js";
-import { isValidSession, saveLocalCurrentUser, removeLocalCurrentUser, getLocalCurrentUser, initializeGoogleSignIn, handleCredentialResponse, openLogin } from "./auth.js";
+import { isValidSession, saveLocalCurrentUser, removeLocalCurrentUser, getLocalCurrentUser, redirectToGoogleLogin, handleGoogleRedirect, openLogin } from "./auth.js";
 import { approvePost, deletePost } from "./admin.js";
 
 const app = initializeApp(firebaseConfig);
@@ -714,13 +714,9 @@ function getCurrentUserRolePerms() {
     }
 
     function waitForGoogleAPI() {
-    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-        console.log('Google API loaded, initializing...');
-        initializeGoogleSignIn();
-    } else {
-        setTimeout(waitForGoogleAPI, 500);
+        console.log('Google API not required — using redirect-based login.');
     }
-    }
+
 
     document.getElementById('search')?.addEventListener('input', () => renderPosts());
     document.getElementById('btn-login')?.addEventListener('click', openLogin);
