@@ -32,7 +32,7 @@ export function getLocalCurrentUser() {
 export function redirectToGoogleLogin() {
     const params = new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
-        redirect_uri: window.location.origin + '/auth-callback.html',
+        redirect_uri: window.location.origin + '/authCallback.html',
         response_type: 'token',
         scope: 'openid email profile',
         include_granted_scopes: 'true',
