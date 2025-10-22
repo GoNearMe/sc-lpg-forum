@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Авторизація...</title>
+  <script type="module">
+    import { handleGoogleRedirect } from './js/auth.js';
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const usersCache = [];
+        await handleGoogleRedirect(usersCache, (u) => {
+          localStorage.setItem('lpg_current_user', JSON.stringify(u));
+        });
+        setTimeout(() => (window.location.href = '/'), 500);
+      } catch (err) {
+        console.error(err);
+        document.body.innerHTML = '<h2>Помилка входу</h2><p>Спробуйте знову.</p>';
+      }
+    });
+  </script>
+</head>
+<body>
+  <h2 style="text-align:center;margin-top:40px;">Виконується вхід через Google...</h2>
+</body>
+</html>
