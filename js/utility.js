@@ -36,7 +36,7 @@ import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc } f
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import { firebaseConfig } from "./config.js";
 
-export const GOOGLE_CLIENT_ID = '689060175762-7n6o3fcl9p5ivqitnatvjkpbdi2phes1.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = '497455412781-bvsamm71v59t2jkflci0kp6mq223p305.apps.googleusercontent.com';
 export const LS = {
     CURRENT_USER: 'lpg_current_user'
 };
