@@ -796,15 +796,26 @@ window.signOut = async function() {
     }
 };
 
-// Detect Google redirect on the main page
 document.addEventListener('DOMContentLoaded', async () => {
-  const usersCache = []; // or your existing loaded users
   const hash = new URLSearchParams(window.location.hash.substring(1));
 
+  // if redirected from Google login
   if (hash.has('access_token')) {
-    await handleGoogleRedirect(usersCache, (user) => {
-      window.localStorage.setItem('lpg_current_user', JSON.stringify(user));
+    console.log('Google redirect detected, fetching profile...');
+    await handleGoogleRedirect(usersCache, (u) => {
+      currentUser = u;
+      saveLocalCurrentUser(u);
+      updateUIForLoggedInUser();
     });
+  } 
+  // else restore saved session from localStorage
+  else {
+    const savedUser = getLocalCurrentUser();
+    if (savedUser && isValidSession(savedUser)) {
+      console.log('Restoring session for', savedUser.name);
+      currentUser = savedUser;
+      updateUIForLoggedInUser();
+    }
   }
 });
 
@@ -855,4 +866,4 @@ window.openUserProfile = function(userId) {
         </div>
     `;
     openModal();
-};
+}
