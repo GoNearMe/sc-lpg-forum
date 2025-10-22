@@ -796,6 +796,19 @@ window.signOut = async function() {
     }
 };
 
+// Detect Google redirect on the main page
+document.addEventListener('DOMContentLoaded', async () => {
+  const usersCache = []; // or your existing loaded users
+  const hash = new URLSearchParams(window.location.hash.substring(1));
+
+  if (hash.has('access_token')) {
+    await handleGoogleRedirect(usersCache, (user) => {
+      window.localStorage.setItem('lpg_current_user', JSON.stringify(user));
+    });
+  }
+});
+
+
 window.openUserProfile = function(userId) {
     const user = usersCache.find(u => u.id === userId || u.googleId === userId);
     if(!user) return showCustomAlert('Користувача не знайдено.','Помилка');
