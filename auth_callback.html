@@ -30,13 +30,13 @@
 
         // Small delay to ensure storage finishes
         setTimeout(() => {
-          window.location.href = '/'; // back to main forum
+          window.location.href = 'https://sc-lpg-forum.netlify.app/'; // back to main forum
         }, 500);
       } catch (err) {
         console.error('Login redirect failed:', err);
         document.body.innerHTML = `
           <h2>❌ Помилка авторизації</h2>
-          <p>Спробуйте ще раз або поверніться <a href="/">на головну</a>.</p>
+          <p>Спробуйте ще раз або поверніться <a href="https://sc-lpg-forum.netlify.app/">на головну</a>.</p>
         `;
       }
     });
