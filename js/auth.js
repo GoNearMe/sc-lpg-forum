@@ -32,7 +32,7 @@ export function getLocalCurrentUser() {
 export function redirectToGoogleLogin() {
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: window.location.origin, // ✅ homepage as redirect target
+    redirect_uri: 'https://sc-lpg-forum.netlify.app/', // ✅ fixed main page
     response_type: 'token',
     scope: 'openid email profile',
     include_granted_scopes: 'true',
@@ -40,6 +40,7 @@ export function redirectToGoogleLogin() {
   });
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
+
 
 // ✅ Handles Google redirect directly on the main page
 export async function handleGoogleRedirect(usersCache, setCurrentUser) {
