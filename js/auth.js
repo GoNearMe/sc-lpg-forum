@@ -9,7 +9,7 @@ export const LS = {
 export function isValidSession(user) {
   if (!user || !user.loginTime) return false;
   const hoursSinceLogin = (Date.now() - user.loginTime) / (1000 * 60 * 60);
-  return hoursSinceLogin < 24;
+  return hoursSinceLogin < 48;
 }
 
 export function saveLocalCurrentUser(u) {
