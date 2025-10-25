@@ -66,17 +66,6 @@
     background-size:200% 100%; animation:slideLine 2.2s linear infinite;border-radius:22px 22px 0 0;
   }
   @keyframes slideLine{to{background-position:200% 0}}
-  .lz-logoWrap{
-    width:80px;height:80px;border-radius:22px;background:white;overflow:hidden;
-    display:grid;place-items:center;margin:auto;position:relative;
-    box-shadow:0 10px 30px rgba(56,103,214,0.12),inset 0 0 0 3px rgba(255,255,255,0.5);
-    animation:floatLogo 4s ease-in-out infinite alternate;
-  }
-  .lz-logoWrap::after{
-    content:"";position:absolute;inset:-10px;border-radius:26px;
-    box-shadow:0 0 0 0 rgba(56,103,214,.3);
-    animation:pulseRing 2.8s ease-out infinite;
-  }
   @keyframes floatLogo{to{transform:translateY(6px)}}
   @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(56,103,214,.25)}80%{box-shadow:0 0 0 28px rgba(56,103,214,0)}100%{box-shadow:0 0 0 0 rgba(56,103,214,0)}}
   .lz-logo{width:100%;height:100%;object-fit:cover;border-radius:inherit;}
@@ -138,7 +127,6 @@
     <div class="lz-grid"></div>
     <div class="lz-card">
       <div class="lz-accent-line"></div>
-      <div class="lz-logoWrap"><img src="${CFG.logoSrc}" class="lz-logo" alt="Логотип"></div>
       <div class="lz-title">${CFG.brand}</div>
       <div class="lz-sub">Готуємо компоненти інтерфейсу…</div>
       <div class="lz-progress"><div class="lz-bar" id="lz-bar"></div></div>
