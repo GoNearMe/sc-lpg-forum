@@ -8,7 +8,7 @@
   // ==============================================================
   const CFG = {
     brand: "ЛПГ — Форум",
-    logoSrc: "/assets/Logo.jpg",
+    logoSrc: "./assets/Logo.jpg",
     accent: "#3867d6",
     accent2: "#ff9f43",
     bg0: "#eef6fb",
