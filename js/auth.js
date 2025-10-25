@@ -32,7 +32,7 @@ export function getLocalCurrentUser() {
 export function redirectToGoogleLogin() {
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: 'https://sc-lpg-forum.netlify.app/', // ✅ fixed main page
+    redirect_uri: 'https://lpg-forum.netlify.app/', // ✅ fixed main page
     response_type: 'token',
     scope: 'openid email profile',
     include_granted_scopes: 'true',
