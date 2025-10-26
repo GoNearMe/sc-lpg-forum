@@ -186,6 +186,9 @@ function fadeInElement(el) {
 // ===============================================
 // ENHANCED RENDER WITH PAGINATION SUPPORT
 // ===============================================
+// ===============================================
+// CINEMATIC POST RENDERER (WHITE-BLUE STYLE)
+// ===============================================
 function renderPosts(opts = {}) {
   const q = (document.getElementById('search')?.value || '').trim().toLowerCase();
   const posts = (postsCache || []).slice();
@@ -213,116 +216,121 @@ function renderPosts(opts = {}) {
 
   const container = document.getElementById('posts-list');
   if (!container) return;
-  container.innerHTML = '';
 
-  const votesMap = {};
-  for (const vDoc of votesCache) votesMap[vDoc.id] = vDoc.votes || {};
+  // Fade-out existing posts before loading new ones
+  container.classList.add("fade-out");
+  setTimeout(() => {
+    container.innerHTML = '';
+    container.classList.remove("fade-out");
 
-  pageItems.forEach(p => {
-    const author = allUsers.find(u => u.id === p.authorId || u.googleId === p.authorId) ||
-      { name: p.authorName || 'Гість', role: 'role_student', id: p.authorId || uid(), picture: null };
-    const role = roles.find(r => r.id === author.role) || { name: 'Учень', emoji: '📘', color: '#8fb4ff' };
-    const el = document.createElement('div');
-    el.className = 'reddit-card opacity-0';
+    const votesMap = {};
+    for (const vDoc of votesCache) votesMap[vDoc.id] = vDoc.votes || {};
 
-    const userVotesForPost = currentUser && votesMap[currentUser.id]
-      ? (votesMap[currentUser.id][p.id] || 0) : 0;
+    pageItems.forEach((p, index) => {
+      const author = allUsers.find(u => u.id === p.authorId || u.googleId === p.authorId) ||
+        { name: p.authorName || 'Гість', role: 'role_student', id: p.authorId || uid(), picture: null };
+      const role = roles.find(r => r.id === author.role) || { name: 'Учень', emoji: '📘', color: '#8fb4ff' };
+      const el = document.createElement('div');
+      el.className = 'reddit-card opacity-0 translate-y-3';
 
-    let formattedContent = highlight(p.content, document.getElementById('search')?.value);
-    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-      .replace(/_(.*?)_/g, '<i>$1</i>');
+      const userVotesForPost = currentUser && votesMap[currentUser.id]
+        ? (votesMap[currentUser.id][p.id] || 0) : 0;
 
-    let adminActions = '';
-    if (!p.approved && perms.approve)
-      adminActions += `<button onclick="approvePost('${p.id}')" class="admin-btn green">Схвалити</button>`;
-    if (perms.delete)
-      adminActions += `<button onclick="deletePost('${p.id}')" class="admin-btn red">Видалити</button>`;
+      let formattedContent = highlight(p.content, document.getElementById('search')?.value);
+      formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/_(.*?)_/g, '<i>$1</i>');
 
-    const avatarSrc = author.picture ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=${role.color?.substring(1) || '3867d6'}&color=fff&size=32`;
+      let adminActions = '';
+      if (!p.approved && perms.approve)
+        adminActions += `<button onclick="approvePost('${p.id}')" class="admin-btn green">Схвалити</button>`;
+      if (perms.delete)
+        adminActions += `<button onclick="deletePost('${p.id}')" class="admin-btn red">Видалити</button>`;
 
-    const subredditName = escapeHtml(p.section || 'Загальні');
+      const avatarSrc = author.picture ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=${role.color?.substring(1) || '3867d6'}&color=fff&size=32`;
 
-    el.innerHTML = `
-      <!-- Header -->
-      <div class="sub-header flex items-center justify-between text-sm text-gray-600 mb-2">
-        <div class="flex items-center gap-2">
-          <img src="/assets/Logo.jpg" class="w-6 h-6 rounded-full" alt="logo">
-          <span class="font-semibold text-gray-800 cursor-pointer hover:underline">r/${subredditName}</span>
-          <span class="text-gray-400">•</span>
-          <span>${new Date(p.created).toLocaleString('uk-UA')}</span>
-        </div>
-        <button class="join-btn">Приєднатися</button>
-      </div>
+      const subredditName = escapeHtml(p.section || 'Загальні');
 
-      <!-- Main Body -->
-      <div class="flex">
-        <!-- Votes -->
-        <div class="vote-col flex flex-col items-center pr-3">
-          <button class="vote-btn up ${userVotesForPost === 1 ? 'active' : ''}">
-            <i class="fa-solid fa-arrow-up"></i>
-          </button>
-          <div class="vote-score">${p.score || 0}</div>
-          <button class="vote-btn down ${userVotesForPost === -1 ? 'active' : ''}">
-            <i class="fa-solid fa-arrow-down"></i>
-          </button>
-        </div>
-
-        <!-- Post Content -->
-        <div class="flex-1 space-y-2">
-          <h3 class="post-title" onclick="openComments(p)">
-            ${highlight(p.title, document.getElementById('search')?.value)}
-          </h3>
-
-          <p class="post-content">${formattedContent}</p>
-
-          <div class="flex items-center gap-2 text-xs text-gray-500 mt-2">
-            <img src="${avatarSrc}" class="w-5 h-5 rounded-full border border-gray-200" alt="">
-            <span class="cursor-pointer hover:underline text-gray-700 font-medium" onclick="openUserProfile('${author.id || author.googleId}')">u/${escapeHtml(author.name)}</span>
+      // === Post Layout ===
+      el.innerHTML = `
+        <div class="sub-header flex items-center justify-between text-sm text-gray-600 mb-2">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-circle-nodes text-blue-500 bg-blue-50 p-1.5 rounded-full border border-blue-100"></i>
+            <span class="font-semibold text-gray-800 cursor-pointer hover:underline">r/${subredditName}</span>
             <span class="text-gray-400">•</span>
-            <span>${role.emoji || '📘'} ${role.name}</span>
-            ${!p.approved ? '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">На розгляді</span>' : ''}
-            ${adminActions ? `<div class="ml-auto flex gap-2">${adminActions}</div>` : ''}
+            <span>${new Date(p.created).toLocaleString('uk-UA')}</span>
+          </div>
+          <button class="join-btn">Приєднатися</button>
+        </div>
+
+        <div class="flex">
+          <!-- Votes -->
+          <div class="vote-col flex flex-col items-center pr-3">
+            <button class="vote-btn up ${userVotesForPost === 1 ? 'active' : ''}">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+            <div class="vote-score">${p.score || 0}</div>
+            <button class="vote-btn down ${userVotesForPost === -1 ? 'active' : ''}">
+              <i class="fa-solid fa-arrow-down"></i>
+            </button>
           </div>
 
-          <!-- Action Bar -->
-          <div class="action-bar flex items-center gap-5 text-sm text-gray-500 pt-2">
-            <button class="btn-comment hover:text-blue-600 flex items-center gap-1">
-              <i class="fa-regular fa-comment-dots"></i> ${(p.comments || []).length}
-            </button>
-            <button class="hover:text-sky-500 flex items-center gap-1">
-              <i class="fa-regular fa-share-from-square"></i> Поділитись
-            </button>
-            <button class="hover:text-yellow-500 flex items-center gap-1">
-              <i class="fa-regular fa-award"></i> Нагорода
-            </button>
-            <button class="hover:text-red-500 flex items-center gap-1">
-              <i class="fa-regular fa-bookmark"></i> Зберегти
-            </button>
+          <!-- Content -->
+          <div class="flex-1 space-y-2">
+            <h3 class="post-title" onclick="openComments(p)">
+              ${highlight(p.title, document.getElementById('search')?.value)}
+            </h3>
+            <p class="post-content">${formattedContent}</p>
+
+            <div class="flex items-center gap-2 text-xs text-gray-500 mt-2">
+              <img src="${avatarSrc}" class="w-5 h-5 rounded-full border border-gray-200" alt="">
+              <span class="cursor-pointer hover:underline text-gray-700 font-medium" onclick="openUserProfile('${author.id || author.googleId}')">u/${escapeHtml(author.name)}</span>
+              <span class="text-gray-400">•</span>
+              <span>${role.emoji || '📘'} ${role.name}</span>
+              ${!p.approved ? '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">На розгляді</span>' : ''}
+              ${adminActions ? `<div class="ml-auto flex gap-2">${adminActions}</div>` : ''}
+            </div>
+
+            <div class="action-bar flex items-center gap-5 text-sm text-gray-500 pt-2">
+              <button class="btn-comment hover:text-blue-600 flex items-center gap-1">
+                <i class="fa-regular fa-comment-dots"></i> ${(p.comments || []).length}
+              </button>
+              <button class="hover:text-sky-500 flex items-center gap-1">
+                <i class="fa-regular fa-share-from-square"></i> Поділитись
+              </button>
+              <button class="hover:text-red-500 flex items-center gap-1">
+                <i class="fa-regular fa-bookmark"></i> Зберегти
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    const upBtn = el.querySelector('.vote-btn.up');
-    const downBtn = el.querySelector('.vote-btn.down');
-    upBtn.addEventListener('click', () => vote(p.id, 1, upBtn, downBtn));
-    downBtn.addEventListener('click', () => vote(p.id, -1, downBtn, upBtn));
-    el.querySelector('.btn-comment').addEventListener('click', () => openComments(p));
+      // Add vote handlers
+      const upBtn = el.querySelector('.vote-btn.up');
+      const downBtn = el.querySelector('.vote-btn.down');
+      upBtn.addEventListener('click', () => vote(p.id, 1, upBtn, downBtn));
+      downBtn.addEventListener('click', () => vote(p.id, -1, downBtn, upBtn));
+      el.querySelector('.btn-comment').addEventListener('click', () => openComments(p));
 
-    container.appendChild(el);
-    fadeInElement(el);
-  });
+      container.appendChild(el);
 
-  renderPaginationControls();
-  document.getElementById('stat-users').textContent = usersCache.length;
-  document.getElementById('stat-today').textContent =
-    postsCache.filter(p => new Date(p.created).toDateString() === new Date().toDateString()).length;
+      // Staggered cinematic animation
+      setTimeout(() => {
+        el.classList.add('fade-in');
+      }, index * 80);
+    });
+
+    renderPaginationControls();
+    document.getElementById('stat-users').textContent = usersCache.length;
+    document.getElementById('stat-today').textContent =
+      postsCache.filter(p => new Date(p.created).toDateString() === new Date().toDateString()).length;
+  }, 180); // Smooth transition delay
 }
 
 
 // ===============================================
-// PAGINATION CONTROL RENDERER
+// STYLISH PAGINATION
 // ===============================================
 function renderPaginationControls() {
   const container = document.getElementById(pagination.containerId);
@@ -332,12 +340,16 @@ function renderPaginationControls() {
   if (totalPages <= 1) return (container.innerHTML = '');
 
   let html = `
-    <div class="flex justify-center items-center gap-2 mt-6">
-      <button class="px-3 py-1 rounded-md border ${pagination.page === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}" ${pagination.page === 1 ? 'disabled' : ''} id="prevPage">←</button>
+    <div class="pagination flex justify-center items-center gap-2 mt-8">
+      <button class="page-btn prev ${pagination.page === 1 ? 'disabled' : ''}" ${pagination.page === 1 ? 'disabled' : ''}>
+        <i class="fa-solid fa-angle-left"></i>
+      </button>
       ${Array.from({ length: totalPages }, (_, i) => i + 1).map(p => `
-        <button class="px-3 py-1 rounded-md border ${p === pagination.page ? 'bg-primary text-white' : 'hover:bg-gray-100'}" data-page="${p}">${p}</button>
+        <button class="page-btn num ${p === pagination.page ? 'active' : ''}" data-page="${p}">${p}</button>
       `).join('')}
-      <button class="px-3 py-1 rounded-md border ${pagination.page === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}" ${pagination.page === totalPages ? 'disabled' : ''} id="nextPage">→</button>
+      <button class="page-btn next ${pagination.page === totalPages ? 'disabled' : ''}" ${pagination.page === totalPages ? 'disabled' : ''}>
+        <i class="fa-solid fa-angle-right"></i>
+      </button>
     </div>
   `;
 
@@ -349,13 +361,14 @@ function renderPaginationControls() {
       renderPosts();
     })
   );
-  container.querySelector('#prevPage')?.addEventListener('click', () => {
+
+  container.querySelector('.prev')?.addEventListener('click', () => {
     if (pagination.page > 1) {
       pagination.page--;
       renderPosts();
     }
   });
-  container.querySelector('#nextPage')?.addEventListener('click', () => {
+  container.querySelector('.next')?.addEventListener('click', () => {
     const totalPages = Math.ceil(pagination.total / pagination.perPage);
     if (pagination.page < totalPages) {
       pagination.page++;
@@ -363,6 +376,7 @@ function renderPaginationControls() {
     }
   });
 }
+
 
 async function vote(postId, delta, btn, otherBtn) {
     if(!currentUser) {
