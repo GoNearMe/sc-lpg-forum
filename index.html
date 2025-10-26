@@ -1,203 +1,398 @@
 <!doctype html>
-<html lang="uk">
+<html lang="uk" data-theme="light">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Форум ЛПГ — Превʼю</title>
-    <meta name="description" content="Превʼю шкільного форуму Львівської Правничої Гімназії (ЛПГ). Анімації, рейтинги, ролі, адмін-панель." />
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google OAuth -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
-    <link rel="stylesheet" href="css/index.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Форум ЛПГ — Превʼю</title>
+  <meta name="description" content="Превʼю шкільного форуму Львівської Правничої Гімназії (ЛПГ). Анімації, рейтинги, ролі, адмін-панель." />
 
+  <!-- Tailwind (CDN for preview; replace with CLI/PostCSS in prod) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google OAuth -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+  <link rel="stylesheet" href="css/index.css" />
 </head>
 <body>
+  <div class="grid-overlay"></div>
+  <canvas id="bgCanvas"></canvas>
 
-    <canvas id="bgCanvas"></canvas>
+  <!-- ============ MOBILE TOP BAR (Reddit-like) ============ -->
+  <header class="m-top sticky top-0 z-40 bg-[var(--card)]/90 backdrop-blur border-b border-[var(--border)]">
+    <div class="mx-auto max-w-7xl px-3 py-2 flex items-center justify-between gap-2">
+      <button id="btn-open-drawer" class="tap" aria-label="Відкрити меню"><i class="fa-solid fa-bars"></i></button>
+      <div class="flex items-center gap-2 select-none">
+        <img src="assets/Logo.jpg" class="w-8 h-8 rounded-lg object-cover" alt="ЛПГ"/>
+        <span class="font-semibold">ЛПГ — Форум</span>
+      </div>
+      <div class="relative flex items-center gap-2">
+        <button id="btn-mobile-search" class="tap" aria-label="Пошук"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button id="btn-auth-menu" class="tap" aria-label="Меню акаунту"><i class="fa-solid fa-ellipsis-vertical"></i></button>
 
-    <div class="wrap mx-auto max-w-7xl px-4 py-8 relative z-10">
-        <!-- Hero Section -->
-        <div class="hero rounded-2xl overflow-hidden shadow-lg mb-6 relative">
-            <img src="assets/lpg_school.jpg" alt="ЛПГ — фото" class="w-full h-64 object-cover object-center filter saturate-105"/>
-            <div class="absolute inset-0 flex items-end p-5 bg-gradient-to-t from-black/20 to-transparent">
-                <div class="hero-title-box shadow-xl">
-                    <div class="w-14 h-14 rounded-xl bg-white flex items-center justify-center shadow-md">
-                         <img 
-                        src="assets/Logo.jpg" 
-                        class="w-full h-full object-contain object-center filter saturate-105"
-                        >
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 leading-tight">Форум Львівської правничої гімназії</h1>
-                        <div class="text-sm text-muted">Пропозиції, події, новини.</div>
-                    </div>
-                </div>
-            </div>
+        <!-- Search dropdown (contains the same #search input used by forum.module.js) -->
+        <div id="search-dropdown" class="dropdown w-[82vw] max-w-[420px] right-0">
+          <div class="p-3 flex gap-2">
+            <input id="search" type="text" placeholder="Пошук…" class="w-full border rounded-xl px-3 py-2" />
+            <select id="sort" class="border rounded-xl px-2 py-2">
+              <option value="new">🆕 Нові</option>
+              <option value="top">🔥 Топ</option>
+              <option value="hot">📈 Популярні</option>
+            </select>
+          </div>
         </div>
 
-        <div class="topbar flex justify-between items-center gap-4 mb-4">
-            <div class="search flex-1 flex gap-2 items-center">
-                <input id="search" type="text" placeholder="Пошук по темі, тексту..." class="p-3 border-gray-200 rounded-xl focus:ring-primary focus:border-primary w-full shadow-sm" />
-                <select id="sort" class="p-3 border-gray-200 rounded-xl shadow-sm">
-                    <option value="new">🆕 Нові</option>
-                    <option value="top">🔥 Топ (Оцінка)</option>
-                    <option value="hot">📈 Популярні (Обговорення)</option>
-                </select>
+        <!-- Auth dropdown (login/logout/profile/admin) -->
+        <div id="auth-dropdown" class="dropdown w-56">
+          <div class="p-2 space-y-2">
+            <button id="btn-login" class="w-full btn-ghost flex items-center justify-center gap-2">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-4 h-4" alt="Google"/> Увійти з Google
+            </button>
+            <div id="user-profile-section" class="hidden">
+              <div class="flex items-center gap-2 px-2 py-1">
+                <img id="user-avatar" class="user-avatar w-8 h-8" src="" alt="Profile"/>
+                <button id="btn-profile" class="text-sm underline">Профіль</button>
+              </div>
+              <button id="btn-admin" class="w-full btn-ghost">Адмін-панель</button>
+              <button id="btn-logout" class="w-full btn-ghost text-red-600">Вихід</button>
             </div>
-            <div class="flex gap-2 items-center">
-                <button id="btn-new-post" class="btn-primary">Створити пост</button>
-                <button id="btn-admin" class="btn-ghost">Адмін-панель</button>
-
-                <div id="user-profile-section" class="hidden flex items-center gap-3">
-                    <button id="btn-profile" >
-                        <img id="user-avatar" class="user-avatar" src="" alt="Profile"/>
-                    </button>
-                    <button id="btn-logout" class="btn-ghost text-red-600" onclick="signOut()">Вихід</button>
-                </div>
-
-                <!-- Google Login Button (shown when logged out) -->
-               <button id="btn-login" class="google-btn">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" 
-                        alt="Google Logo" class="google-icon">
-                    <span>Увійти з Google</span>
-                </button>
-            </div>
+          </div>
         </div>
+      </div>
+    </div>
+  </header>
 
-        <!-- Main Content Grid -->
-        <div class="main-grid grid lg:grid-cols-[1fr_340px] gap-6">
-            <section class="bg-white rounded-xl p-4 shadow-lg">
-                <div id="posts-list" class="space-y-4 mt-1">
-                    <!-- Posts will be rendered here -->
-                </div>
-                <div id="pagination" class="mt-4"></div>
-                
-            </section>
+  <!-- ============ DESKTOP TOP BAR ============ -->
+  <div class="desktop-topbar mx-auto max-w-7xl px-4 py-4 relative z-10">
+    <div class="flex items-center gap-3">
+         <button id="btn-open-drawer-desktop" class="tap" aria-label="Відкрити меню">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+    <div class="searchbar">
+      <input id="search-desktop" type="text" placeholder="Пошук по темі, тексту..." class="w-full" />
+      <select id="sort-desktop">
+        <option value="new">🆕 Нові</option>
+        <option value="top">🔥 Топ (Оцінка)</option>
+        <option value="hot">📈 Популярні (Обговорення)</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="btn-new-post" class="btn-primary">Створити пост</button>
+      <button id="btn-admin-desktop" class="btn-ghost">Адмін-панель</button>
+      <div id="user-profile-section-desktop" class="hidden items-center gap-3">
+        <button id="btn-profile-desktop"><img id="user-avatar-desktop" class="user-avatar" src="" alt="Profile"/></button>
+        <button id="btn-logout-desktop" class="btn-ghost text-red-600">Вихід</button>
+      </div>
+      <button id="btn-login-desktop" class="btn-ghost flex items-center gap-2">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-4 h-4" alt="G"/> Увійти з Google
+      </button>
+    </div>
+  </div>
 
-            <aside class="space-y-4">
-                <div class="bg-white rounded-xl p-4 shadow-lg fade-in">
-                    <h3 class="font-semibold text-lg mb-3">Швидкий перегляд</h3>
-                    <div id="quick-tags" class="flex flex-wrap gap-2"></div>
-                </div>
-
-                <div class="bg-white rounded-xl p-4 shadow-lg">
-                    <h3 class="font-semibold text-lg mb-3">Статистика</h3>
-                    <div class="text-sm text-muted space-y-1">
-                        <div>Користувачів: <strong id="stat-users" class="text-gray-900">0</strong></div>
-                        <div>Пости сьогодні: <strong id="stat-today" class="text-gray-900">0</strong></div>
-                    </div>
-                    <div class="mt-3"><button id="btn-analytics" class="btn-ghost w-full">Переглянути аналітику</button></div>
-                </div>
-
-               <!-- CONTACT SECTION -->
-               <!-- CONTACT SECTION -->
-                <div class="contact-card bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/70 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                  <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-address-book text-blue-600"></i>
-                    Контакти
-                  </h3>
-
-                  <div class="space-y-3 text-gray-700 text-sm leading-relaxed">
-                    <div class="font-medium text-gray-900">Львівська правнича гімназія (ЛПГ)</div>
-                    <div>
-                      <i class="fa-solid fa-envelope text-blue-500 mr-2"></i>
-                      <a href="mailto:lvivskapravnycha@gmail.com" class="hover:underline text-blue-600">
-                        lvivskapravnycha@gmail.com
-                      </a>
-                    </div>
-                    <div><i class="fa-solid fa-coins text-yellow-500 mr-2"></i>Бухгалтерія: <span class="font-medium">+380 32 233 6096</span></div>
-                    <div><i class="fa-brands fa-viber text-purple-500 mr-2"></i>Viber: <span class="font-medium">+380 97 543 8264</span></div>
-                    <div><i class="fa-solid fa-phone text-green-500 mr-2"></i>Телефон: <span class="font-medium">+380 32 233 3563</span></div>
-                    <div><i class="fa-solid fa-location-dot text-red-500 mr-2"></i>Адреса: 79007 м. Львів, вул. Леонтовича, 2</div>
-                  </div>
-
-                  <div class="mt-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                    <h4 class="font-semibold text-blue-700 flex items-center gap-2 mb-1">
-                      <i class="fa-regular fa-clock"></i> Години роботи
-                    </h4>
-                    <p>Понеділок — Пʼятниця: <strong>9:00 – 18:00</strong></p>
-                    <p>Субота — Неділя: <strong>вихідний</strong></p>
-                  </div>
-
-                  <div class="flex justify-between items-center mt-4">
-                    <a href="#" class="text-sm text-gray-500 hover:text-blue-600 hover:underline">Політика конфіденційності</a>
-                  </div>
-
-                  <div class="flex justify-center gap-5 mt-5">
-                    <a href="https://www.facebook.com/lpg.school/?locale=uk_UA" target="_blank" class="social-btn hover:scale-110">
-                      <img src="assets/facebook.png" alt="Facebook" class="h-20 w-40">
-                    </a>
-                    <a href="https://www.instagram.com/pravnycha/" target="_blank" class="social-btn hover:scale-110">
-                      <img src="assets/instagram.png" alt="Instagram" class="h-20 w-40">
-                    </a>
-                    <a href="https://www.youtube.com/channel/UCDckzy7ypU3s3XxuFaG0hEQ/videos" target="_blank" class="social-btn hover:scale-110">
-                      <img src="assets/youtube.png" alt="YouTube" class="h-20 w-40">
-                    </a>
-                  </div>
-
-                  <div class="map-container mt-6 overflow-hidden rounded-xl shadow-md border border-gray-200">
-                    <iframe
-                      src="https://www.google.com/maps?q=49.843194,24.018556&hl=uk&z=17&output=embed"
-                      allowfullscreen=""
-                      loading="lazy"
-                      referrerpolicy="no-referrer-when-downgrade"
-                      class="w-full h-52 rounded-xl"
-                    ></iframe>
-                  </div>
-                </div>
-
-
-
-
-            </aside>
+  <!-- ============ MOBILE DRAWER (left) ============ -->
+  <div id="mobile-drawer" class="drawer">
+    <div class="mask" id="drawer-mask"></div>
+    <aside class="panel flex flex-col">
+      <div class="p-4 flex items-center justify-between border-b border-[var(--border)]">
+        <div class="flex items-center gap-2">
+          <img src="assets/Logo.jpg" class="w-8 h-8 rounded-md" alt="ЛПГ"/>
+          <strong>ЛПГ — Форум</strong>
         </div>
+        <button id="btn-close-drawer" class="tap"><i class="fa-solid fa-xmark"></i></button>
+      </div>
 
-        <!-- Footer -->
-        <footer class="mt-8 p-6 bg-white/60 backdrop-blur-sm rounded-xl shadow-lg border border-white/80">
-            <div class="flex justify-between items-center flex-wrap gap-4">
-                <div>
-                    <strong class="text-lg">Форум ЛПГ</strong>
-                    <div class="text-sm text-muted">© ЛПГ — 2025. Усі права збережено.</div>
-                </div>
-                <div class="flex gap-4 text-sm">
-                    <a href="#" class="text-primary hover:underline">Про школу</a>
-                    <span class="text-muted">|</span>
-                    <a href="#" class="text-primary hover:underline">Контакти</a>
-                    <span class="text-muted">|</span>
-                    <a href="#" class="text-primary hover:underline">Підтримка</a>
-                </div>
-            </div>
-        </footer>
+      <nav class="p-2 text-[15px]">
+        <button id="btn-theme" class="w-full flex items-center justify-between px-3 py-3 rounded-lg hover:bg-[var(--hover)]">
+          <span><i class="fa-regular fa-moon mr-2"></i> Темна / Світла тема</span>
+          <span class="text-xs text-[var(--muted)]">ручний перемикач</span>
+        </button>
+        <a href="#" class="block px-3 py-3 rounded-lg hover:bg-[var(--hover)]"><i class="fa-solid fa-fire mr-2 text-orange-500"></i> Популярне</a>
+        <a href="#" class="block px-3 py-3 rounded-lg hover:bg-[var(--hover)]"><i class="fa-solid fa-sparkles mr-2 text-sky-500"></i> Цікаве</a>
+        <a href="#" class="block px-3 py-3 rounded-lg hover:bg-[var(--hover)]"><i class="fa-solid fa-layer-group mr-2 text-indigo-500"></i> Розділи</a>
+        <div class="h-px my-2 bg-[var(--border)]"></div>
+        <a href="#" class="block px-3 py-3 rounded-lg hover:bg-[var(--hover)]">Про школу</a>
+        <a href="#" class="block px-3 py-3 rounded-lg hover:bg-[var(--hover)]">Підтримка</a>
+      </nav>
+    </aside>
+  </div>
+
+  <!-- ============ CONTENT ============ -->
+  <main class="wrap mx-auto max-w-7xl px-4 py-6 relative z-10">
+
+    <!-- Hero (desktop only) -->
+    <div class="hero mb-6">
+      <img src="assets/lpg_school.jpg" alt="ЛПГ — фото" class="w-full h-64 object-cover object-center saturate-105"/>
+      <div class="absolute inset-0 flex items-end p-5 bg-gradient-to-t from-black/20 to-transparent">
+        <div class="hero-title-box shadow-xl">
+          <div class="w-14 h-14 rounded-xl bg-white flex items-center justify-center shadow-md overflow-hidden">
+            <img src="assets/Logo.jpg" class="w-full h-full object-contain object-center saturate-105" alt="ЛПГ">
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 leading-tight">Форум Львівської правничої гімназії</h1>
+            <div class="text-sm text-[var(--muted)]">Пропозиції, події, новини.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- MAIN MODAL CONTAINER (for all forms, panels, etc.) -->
-    <div id="modal" class="modal" aria-hidden="true">
-        <div class="box">
-            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-                <h3 id="modal-title" class="text-xl font-bold">Модальне</h3>
-                <div><button id="modal-close" class="text-muted hover:text-gray-900 p-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button></div>
+    <div class="main-grid grid lg:grid-cols-[1fr_340px] gap-6">
+      <!-- Posts -->
+      <section class="card p-4">
+        <!-- Desktop inline search duplicates mobile input value via JS -->
+        <div id="posts-list" class="space-y-4 mt-1"></div>
+        <div id="pagination" class="mt-4"></div>
+      </section>
+
+      <!-- Sidebar -->
+      <aside class="space-y-4">
+        <div class="card p-4">
+          <h3 class="font-semibold text-lg mb-3">Швидкий перегляд</h3>
+          <div id="quick-tags" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div class="card p-4">
+          <h3 class="font-semibold text-lg mb-3">Статистика</h3>
+          <div class="text-sm text-[var(--muted)] space-y-1">
+            <div>Користувачів: <strong id="stat-users" class="text-gray-900">0</strong></div>
+            <div>Пости сьогодні: <strong id="stat-today" class="text-gray-900">0</strong></div>
+          </div>
+          <div class="mt-3"><button id="btn-analytics" class="btn-ghost w-full">Переглянути аналітику</button></div>
+        </div>
+
+        <!-- CONTACT SECTION -->
+        <div class="contact-card p-6">
+          <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-address-book text-blue-600"></i> Контакти
+          </h3>
+          <div class="space-y-3 text-sm leading-relaxed">
+            <div class="font-medium">Львівська правнича гімназія (ЛПГ)</div>
+            <div>
+              <i class="fa-solid fa-envelope text-blue-500 mr-2"></i>
+              <a href="mailto:lvivskapravnycha@gmail.com" class="underline">lvivskapravnycha@gmail.com</a>
             </div>
-            <div id="modal-body"></div>
+            <div><i class="fa-solid fa-coins text-yellow-500 mr-2"></i>Бухгалтерія: <span class="font-medium">+380 32 233 6096</span></div>
+            <div><i class="fa-brands fa-viber text-purple-500 mr-2"></i>Viber: <span class="font-medium">+380 97 543 8264</span></div>
+            <div><i class="fa-solid fa-phone text-green-500 mr-2"></i>Телефон: <span class="font-medium">+380 32 233 3563</span></div>
+            <div><i class="fa-solid fa-location-dot text-red-500 mr-2"></i>Адреса: 79007 м. Львів, вул. Леонтовича, 2</div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg border border-[var(--border)] bg-[var(--hover)]">
+            <h4 class="font-semibold flex items-center gap-2 mb-1">
+              <i class="fa-regular fa-clock"></i> Години роботи
+            </h4>
+            <p>Пн—Пт: <strong>9:00 – 18:00</strong></p>
+            <p>Сб—Нд: <strong>вихідний</strong></p>
+          </div>
+          <div class="flex justify-center gap-5 mt-5">
+            <a href="https://www.facebook.com/lpg.school/?locale=uk_UA" target="_blank" class="hover:opacity-80"><img src="assets/facebook.png" alt="Facebook" class="h-12"></a>
+            <a href="https://www.instagram.com/pravnycha/" target="_blank" class="hover:opacity-80"><img src="assets/instagram.png" alt="Instagram" class="h-12"></a>
+            <a href="https://www.youtube.com/channel/UCDckzy7ypU3s3XxuFaG0hEQ/videos" target="_blank" class="hover:opacity-80"><img src="assets/youtube.png" alt="YouTube" class="h-12"></a>
+          </div>
+          <div class="mt-6 overflow-hidden rounded-xl border border-[var(--border)]">
+            <iframe src="https://www.google.com/maps?q=49.843194,24.018556&hl=uk&z=17&output=embed" loading="lazy" class="w-full h-52"></iframe>
+          </div>
         </div>
+      </aside>
     </div>
 
-    <!-- Custom Alert/Confirm Modal (for non-obtrusive messages) -->
-    <div id="custom-dialog" class="modal" aria-hidden="true">
-        <div class="box !w-auto max-w-sm p-6">
-            <h4 id="dialog-title" class="text-lg font-semibold mb-3">Сповіщення</h4>
-            <div id="dialog-message" class="text-gray-600 mb-4"></div>
-            <div id="dialog-actions" class="flex justify-end gap-3"></div>
+    <!-- Footer -->
+    <footer class="mt-8 p-6 card">
+      <div class="flex justify-between items-center flex-wrap gap-4">
+        <div>
+          <strong class="text-lg">Форум ЛПГ</strong>
+          <div class="text-sm text-[var(--muted)]">© ЛПГ — 2025. Усі права збережено.</div>
         </div>
+        <div class="flex gap-4 text-sm">
+          <a href="#" class="text-[var(--accent)] underline">Про школу</a>
+          <a href="#" class="text-[var(--accent)] underline">Контакти</a>
+          <a href="#" class="text-[var(--accent)] underline">Підтримка</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- GLOBAL MODALS (kept compatible with your JS) -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="box">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b border-[var(--border)]">
+        <h3 id="modal-title" class="text-xl font-bold">Модальне</h3>
+        <button id="modal-close" class="text-[var(--muted)] hover:text-inherit p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+      <div id="modal-body"></div>
     </div>
+  </div>
 
-    <script type="module" src="js/forum.module.js"></script>
-    <script type="module" src="js/background.js"></script>
-    <script type="module" src="js/load.js"></script>
+  <div id="custom-dialog" class="modal" aria-hidden="true">
+    <div class="box !w-auto max-w-sm p-6">
+      <h4 id="dialog-title" class="text-lg font-semibold mb-3">Сповіщення</h4>
+      <div id="dialog-message" class="mb-4"></div>
+      <div id="dialog-actions" class="flex justify-end gap-3"></div>
+    </div>
+  </div>
 
+  <!-- Your modules -->
+  <script type="module" src="js/forum.module.js"></script>
+  <script type="module" src="js/background.js"></script>
+  <script type="module" src="js/load.js"></script>
 
+  <!-- Mobile/Desktop UI wiring (no Firestore logic here) -->
+  <script>
+       // Знайдіть оригінальну секцію (function(){ ... })() у тегу <script>
+
+// =========================================================================
+// Замініть увесь вміст оригінальної секції (function(){ ... })() на цей:
+// =========================================================================
+
+(function(){
+    const html = document.documentElement;
+
+    // ---------- Drawer ----------
+    const drawer = document.getElementById('mobile-drawer');
+    const mask = document.getElementById('drawer-mask');
+    const openBtn = document.getElementById('btn-open-drawer');
+    const openBtnDesktop = document.getElementById('btn-open-drawer-desktop');
+    const closeBtn = document.getElementById('btn-close-drawer');
+    const navLinks = drawer.querySelectorAll('nav a, nav button'); // Додано для закриття при кліку на посилання
+
+    function openDrawer() {
+        if (drawer) {
+            drawer.classList.add('active');
+            html.style.overflow = 'hidden'; // Запобігти прокручуванню body
+        }
+    }
+
+    function closeDrawer() {
+        if (drawer) {
+            drawer.classList.remove('active');
+            html.style.overflow = ''; // Відновити прокручування body
+        }
+    }
+
+    // Відкриття
+    openBtn?.addEventListener('click', openDrawer);
+    openBtnDesktop?.addEventListener('click', openDrawer);
+    // Закриття
+    closeBtn?.addEventListener('click', closeDrawer);
+    mask?.addEventListener('click', closeDrawer); // Закриття по кліку на маску
+
+    // Закриття при кліку на будь-який елемент навігації всередині
+    navLinks.forEach(link => {
+        link.addEventListener('click', closeDrawer);
+    });
+    // =========================================================================
+    // Далі продовжується оригінальний код JS
+    // =========================================================================
+
+    // ---------- Search dropdown (mobile) ----------
+    const searchDrop = document.getElementById('search-dropdown');
+    const searchBtn = document.getElementById('btn-mobile-search');
+
+    searchBtn?.addEventListener('click', () => {
+        searchDrop.classList.toggle('active');
+        if (searchDrop.classList.contains('active')) {
+            setTimeout(() => document.getElementById('search')?.focus(), 50);
+        }
+    });
+
+    // ---------- Sync desktop & mobile search ----------
+    const sd = document.getElementById('search-desktop');
+    const sm = document.getElementById('search');
+    const sortD = document.getElementById('sort-desktop');
+    const sortM = document.getElementById('sort');
+
+    sd?.addEventListener('input', () => {
+        if (sm && sm.value !== sd.value) {
+            sm.value = sd.value;
+            sm.dispatchEvent(new Event('input'));
+        }
+    });
+    sm?.addEventListener('input', () => {
+        if (sd && sd.value !== sm.value) {
+            sd.value = sm.value;
+        }
+    });
+    sortD?.addEventListener('change', () => {
+        if (sortM) sortM.value = sortD.value;
+    });
+    sortM?.addEventListener('change', () => {
+        if (sortD) sortD.value = sortM.value;
+    });
+
+    // ---------- Auth dropdown (mobile) ----------
+    const authBtn = document.getElementById('btn-auth-menu');
+    const authDrop = document.getElementById('auth-dropdown');
+
+    authBtn?.addEventListener('click', () => {
+        authDrop.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+        // Уникаємо закриття drawer, якщо клік був всередині
+        if (drawer.classList.contains('active') && (drawer.contains(e.target) || e.target === openBtn || e.target === openBtnDesktop)) {
+            return;
+        }
+
+        if (!authDrop.contains(e.target) && e.target !== authBtn) {
+            authDrop.classList.remove('active');
+        }
+        if (!searchDrop.contains(e.target) && e.target !== searchBtn) {
+            searchDrop.classList.remove('active');
+        }
+    });
+
+    // ---------- Theme toggle ----------
+    const THEME_KEY = 'lpg_theme_v1';
+    const btnTheme = document.getElementById('btn-theme');
+
+    function applyTheme(t) {
+        html.setAttribute('data-theme', t);
+        localStorage.setItem(THEME_KEY, t);
+    }
+
+    function toggleTheme() {
+        const cur = html.getAttribute('data-theme') || 'light';
+        applyTheme(cur === 'light' ? 'dark' : 'light');
+    }
+
+    btnTheme?.addEventListener('click', toggleTheme);
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved) applyTheme(saved);
+
+    // ---------- Desktop Auth Button Mirroring ----------
+    const loginM = document.getElementById('btn-login');
+    const loginD = document.getElementById('btn-login-desktop');
+    loginD?.addEventListener('click', () => loginM?.click());
+
+    const logoutM = document.getElementById('btn-logout');
+    const logoutD = document.getElementById('btn-logout-desktop');
+    logoutD?.addEventListener('click', () => logoutM?.click());
+
+    const profileM = document.getElementById('btn-profile');
+    const profileD = document.getElementById('btn-profile-desktop');
+    profileD?.addEventListener('click', () => profileM?.click());
+
+    const adminM = document.getElementById('btn-admin');
+    const adminD = document.getElementById('btn-admin-desktop');
+    adminD?.addEventListener('click', () => adminM?.click());
+
+    // ---------- Responsive Cleanup ----------
+    let lastW = window.innerWidth;
+    window.addEventListener('resize', () => {
+        const w = window.innerWidth;
+        if (w >= 768 && lastW < 768) {
+            document.getElementById('search-dropdown')?.classList.remove('active');
+            document.getElementById('auth-dropdown')?.classList.remove('active');
+            // Додано примусове закриття drawer при переході до desktop
+            document.getElementById('mobile-drawer')?.classList.remove('active');
+            html.style.overflow = ''; // Відновити прокручування body
+        }
+        lastW = w;
+    });
+
+})();
+  </script>
 </body>
 </html>

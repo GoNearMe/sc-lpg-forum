@@ -161,13 +161,27 @@ import { ensureSeed, startRealtime } from "./forum.module.js";
     return Promise.all([imgWait, fontWait]);
   };
 
-  const markPop = () => {
-    const els = Array.from(document.querySelectorAll(`
-      .wrap > *, section, aside, footer,
-      .contact-card, #modal, #custom-dialog
-    `));
-    els.forEach(el => el.classList.add("lz-pop"));
-  };
+  // ==============================================================
+// INIT UTILS
+// ==============================================================
+    const markPop = () => {
+      // Вибираємо всі основні елементи інтерфейсу всередині .wrap,
+      // а також hero, topbars і footer.
+      // Виключаємо: #bgCanvas, .grid-overlay, та #mobile-drawer (бо вони мають власну логіку)
+      const els = Array.from(document.querySelectorAll(`
+        .m-top, .desktop-topbar, .hero,
+        .wrap > *,
+        .wrap section, .wrap aside, .wrap footer,
+        .contact-card
+      `));
+      // Додаємо виключно батьківський div для модальних вікон, якщо вони є.
+      const modals = [document.getElementById('modal'), document.getElementById('custom-dialog')];
+      
+      els.forEach(el => el.classList.add("lz-pop"));
+      modals.forEach(el => {
+        if (el) el.classList.add("lz-pop");
+      });
+    };
   const revealAll = () => {
     const pops = Array.from(document.querySelectorAll(".lz-pop"));
     let d = 0;
