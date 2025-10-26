@@ -342,6 +342,141 @@ mark{background:gold;color:#000;padding:0 2px;border-radius:2px}
   transform: scale(1.02);
 }
 
+:root {
+  --blue-soft: #e8f2ff;
+  --blue-accent: #2563eb;
+  --blue-light: #dbeafe;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  --bg-card: #ffffff;
+  --bg-hover: #f4f8ff;
+  --border-soft: #e3ecfb;
+}
+
+.reddit-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.05);
+  transition: all 0.25s ease;
+}
+.reddit-card:hover {
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+}
+
+/* Header */
+.sub-header {
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 0.4rem;
+}
+.sub-header img {
+  background: #fff;
+  border: 1px solid #e0e8f7;
+}
+.join-btn {
+  background: var(--blue-soft);
+  color: var(--blue-accent);
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  border: 1px solid var(--blue-light);
+  transition: all 0.2s ease;
+}
+.join-btn:hover {
+  background: var(--blue-accent);
+  color: #fff;
+}
+
+/* Votes */
+.vote-col {
+  text-align: center;
+}
+.vote-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  transition: color 0.2s, transform 0.2s;
+}
+.vote-btn:hover {
+  color: var(--blue-accent);
+  transform: scale(1.1);
+}
+.vote-btn.active.up {
+  color: var(--blue-accent);
+}
+.vote-btn.active.down {
+  color: #ef4444;
+}
+.vote-score {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+/* Post Title & Content */
+.post-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  cursor: pointer;
+  line-height: 1.3;
+  transition: color 0.2s;
+}
+.post-title:hover {
+  color: var(--blue-accent);
+}
+.post-content {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Action Bar */
+.action-bar {
+  border-top: 1px solid var(--border-soft);
+  margin-top: 0.4rem;
+  padding-top: 0.5rem;
+}
+.action-bar button {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.action-bar button:hover {
+  color: var(--blue-accent);
+}
+.action-bar i {
+  font-size: 1rem;
+}
+
+/* Admin buttons */
+.admin-btn {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  color: #fff;
+  transition: all 0.2s;
+}
+.admin-btn.green {
+  background: #22c55e;
+}
+.admin-btn.red {
+  background: #ef4444;
+}
+.admin-btn:hover {
+  filter: brightness(0.9);
+}
+
 
 @media (max-width: 600px) {
     .contact-card {

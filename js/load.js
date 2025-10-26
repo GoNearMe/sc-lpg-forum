@@ -1,5 +1,8 @@
 // js/forged-loader.js
 // Cinematic page loader + Post spinner + Animated reveal with timing control
+
+import { ensureSeed, startRealtime } from "./forum.module.js";
+
 (() => {
   "use strict";
 
@@ -8,7 +11,7 @@
   // ==============================================================
   const CFG = {
     brand: "ЛПГ — Форум",
-    logoSrc: "https://sc-lpg-forum.netlify.app/assets/Logo-DTpHmfKg.jpg",
+    logoSrc: "/assets/Logo.jpg",
     accent: "#3867d6",
     accent2: "#ff9f43",
     bg0: "#eef6fb",
@@ -252,20 +255,55 @@
     requestAnimationFrame(update);
   }
 
+  // ------------------- Wait for actual Firestore data -------------------
+function waitForFirstPosts() {
+  return new Promise((resolve) => {
+    const check = () => {
+      const postsList = document.querySelector("#posts-list");
+      if (postsList && postsList.children.length > 0) {
+        resolve();
+      } else {
+        requestAnimationFrame(check);
+      }
+    };
+    check();
+  });
+}
+
+
   // ==============================================================
   // INIT
   // ==============================================================
-  (async function init(){
+  // ==============================================================
+// INIT — now truly waits for posts
+// ==============================================================
+  (async function init() {
     markPop();
+    
+    // Begin Firestore realtime + seed process
+    startRealtime();
+    await new Promise(r => setTimeout(async () => { await ensureSeed(); r(); }, 800));
+
+    // Wait for static assets and minimal loader time
     await Promise.all([
       waitAll(),
-      new Promise(r=>setTimeout(r, CFG.mainLoaderDuration))
+      new Promise(r => setTimeout(r, CFG.mainLoaderDuration))
     ]);
+
+    // Wait for Firestore posts to be loaded and rendered at least once
+    await waitForFirstPosts();
+
+    // Simulate post spinner only during Firestore load
+    await renderPosts();
+
+    // Fade out cinematic loader
     setProgress(100);
     overlay.classList.add("lz-hidden");
-    await new Promise(r=>setTimeout(r, CFG.fadeMs));
+    await new Promise(r => setTimeout(r, CFG.fadeMs));
     overlay.remove();
-    if(!prefersReduce) revealAll();
-    renderPosts();
+
+    // Reveal UI elements
+    if (!prefersReduce) revealAll();
   })();
+
 })();

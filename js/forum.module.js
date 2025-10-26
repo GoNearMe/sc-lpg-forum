@@ -39,7 +39,7 @@ let auditCache = [];
 
 
 function colRef(name){ return collection(db, name); }
-async function ensureSeed() {
+export async function ensureSeed() {
     if (rolesCache.length === 0) {
         for (const r of defaultRoles) {
             await setDocById('roles', r.id, r);
@@ -83,7 +83,7 @@ async function ensureSeed() {
     }
     }
 
-function startRealtime() {
+export function startRealtime() {
     onSnapshot(colRef('posts'), snap => {
         postsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderPosts();
@@ -162,100 +162,206 @@ function filterBySection(section) {
     renderPosts({ section });
 }
 
+// ===============================================
+// CONFIGURABLE PAGINATION
+// ===============================================
+const pagination = {
+  page: 1,
+  perPage: 6,  // posts per page
+  total: 0,
+  containerId: 'pagination',
+};
+
+// Smooth fade-in animation for posts
+function fadeInElement(el) {
+  el.style.opacity = 0;
+  el.style.transform = 'translateY(10px)';
+  el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+  requestAnimationFrame(() => {
+    el.style.opacity = 1;
+    el.style.transform = 'translateY(0)';
+  });
+}
+
+// ===============================================
+// ENHANCED RENDER WITH PAGINATION SUPPORT
+// ===============================================
 function renderPosts(opts = {}) {
-    const q = (document.getElementById('search')?.value || '').trim().toLowerCase();
-    const posts = (postsCache || []).slice();
-    const allUsers = usersCache || [];
-    const roles = rolesCache || [];
-    const perms = getCurrentUserRolePerms();
+  const q = (document.getElementById('search')?.value || '').trim().toLowerCase();
+  const posts = (postsCache || []).slice();
+  const allUsers = usersCache || [];
+  const roles = rolesCache || [];
+  const perms = getCurrentUserRolePerms();
 
-    let list = posts.filter(p => {
-        if (p.approved) return true;
-        if (currentUser && (p.authorId === currentUser.id || p.googleId === currentUser.googleId)) return true;
-        if (perms.approve) return true;
-        return false;
-    });
+  let list = posts.filter(p => {
+    if (p.approved) return true;
+    if (currentUser && (p.authorId === currentUser.id || p.googleId === currentUser.googleId)) return true;
+    if (perms.approve) return true;
+    return false;
+  });
 
-    if (opts.section) list = list.filter(p => p.section === opts.section);
+  if (opts.section) list = list.filter(p => p.section === opts.section);
+  if (q) list = list.filter(p => (p.title + ' ' + p.content).toLowerCase().includes(q));
 
-    if (q) list = list.filter(p => (p.title + ' ' + p.content).toLowerCase().includes(q));
+  list.sort((a, b) => (b.created || 0) - (a.created || 0));
+  pagination.total = list.length;
 
-    list.sort((a,b) => (b.created||0) - (a.created||0));
+  // --- PAGINATION CORE ---
+  const start = (pagination.page - 1) * pagination.perPage;
+  const end = start + pagination.perPage;
+  const pageItems = list.slice(start, end);
 
-    const container = document.getElementById('posts-list');
-    if(!container) return;
-    container.innerHTML = '';
+  const container = document.getElementById('posts-list');
+  if (!container) return;
+  container.innerHTML = '';
 
-   const votesMap = {};
-    for (const vDoc of votesCache) votesMap[vDoc.id] = vDoc.votes || {};
+  const votesMap = {};
+  for (const vDoc of votesCache) votesMap[vDoc.id] = vDoc.votes || {};
 
+  pageItems.forEach(p => {
+    const author = allUsers.find(u => u.id === p.authorId || u.googleId === p.authorId) ||
+      { name: p.authorName || 'Гість', role: 'role_student', id: p.authorId || uid(), picture: null };
+    const role = roles.find(r => r.id === author.role) || { name: 'Учень', emoji: '📘', color: '#8fb4ff' };
+    const el = document.createElement('div');
+    el.className = 'reddit-card opacity-0';
 
-    list.forEach(p => {
-        const author = allUsers.find(u => u.id === p.authorId || u.googleId === p.authorId) ||
-                    { name: p.authorName || 'Гість', role:'role_student', id: p.authorId || uid(), picture: null };
-        const role = roles.find(r => r.id === author.role) || {name:'Учень',emoji:'📘', color:'#8fb4ff'};
-        const el = document.createElement('div');
-        el.className = 'post bg-white rounded-xl shadow-md p-4 grid grid-cols-[40px_1fr_80px] sm:grid-cols-[50px_1fr_100px] gap-3 border border-gray-100';
+    const userVotesForPost = currentUser && votesMap[currentUser.id]
+      ? (votesMap[currentUser.id][p.id] || 0) : 0;
 
-        const userVotesForPost = currentUser && votesMap[currentUser.id] ? (votesMap[currentUser.id][p.id] || 0) : 0;
+    let formattedContent = highlight(p.content, document.getElementById('search')?.value);
+    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+      .replace(/_(.*?)_/g, '<i>$1</i>');
 
-        let formattedContent = highlight(p.content, document.getElementById('search')?.value);
-        formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-        formattedContent = formattedContent.replace(/_(.*?)_/g, '<i>$1</i>');
+    let adminActions = '';
+    if (!p.approved && perms.approve)
+      adminActions += `<button onclick="approvePost('${p.id}')" class="admin-btn green">Схвалити</button>`;
+    if (perms.delete)
+      adminActions += `<button onclick="deletePost('${p.id}')" class="admin-btn red">Видалити</button>`;
 
-        let adminActions = '';
-        if (!p.approved && perms.approve) {
-        adminActions += `<button onclick="approvePost('${p.id}')" class="text-xs font-semibold px-2 py-1 rounded-full bg-green-500 text-white hover:bg-green-600 transition">Схвалити</button>`;
-        }
-        if (perms.delete) {
-        adminActions += `<button onclick="deletePost('${p.id}')" class="text-xs font-semibold px-2 py-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition">Видалити</button>`;
-        }
+    const avatarSrc = author.picture ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=${role.color?.substring(1) || '3867d6'}&color=fff&size=32`;
 
-        const avatarSrc = author.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=${role.color?.substring(1)||'3867d6'}&color=fff&size=32`;
+    const subredditName = escapeHtml(p.section || 'Загальні');
 
-        el.innerHTML = `
-        <div class="vote-col flex flex-col items-center gap-1">
-            <div class="arrow up ${userVotesForPost===1? 'active':''}" title="Підняти">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-            </div>
-            <div class="score text-lg font-bold">${p.score||0}</div>
-            <div class="arrow down ${userVotesForPost===-1? 'active':''}" title="Опустити">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-            </div>
+    el.innerHTML = `
+      <!-- Header -->
+      <div class="sub-header flex items-center justify-between text-sm text-gray-600 mb-2">
+        <div class="flex items-center gap-2">
+          <img src="/assets/Logo.jpg" class="w-6 h-6 rounded-full" alt="logo">
+          <span class="font-semibold text-gray-800 cursor-pointer hover:underline">r/${subredditName}</span>
+          <span class="text-gray-400">•</span>
+          <span>${new Date(p.created).toLocaleString('uk-UA')}</span>
         </div>
-        <div class="content">
-            <div class="flex flex-wrap gap-2 items-center text-sm mb-1">
-            <div class="flex items-center gap-2">
-                <img src="${avatarSrc}" alt="${escapeHtml(author.name)}" class="w-6 h-6 rounded-full border border-gray-200" />
-                <strong class="font-semibold text-gray-800 cursor-pointer hover:text-primary transition" onclick="openUserProfile('${author.id || author.googleId}')">${escapeHtml(author.name)}</strong>
-            </div>
-            <span class="role-badge text-xs px-2 py-0.5 rounded-full font-medium" style="background:${role.color}1a; color:${role.color}; border:1px solid ${role.color}66;">${role.emoji||''} ${role.name}</span>
-            <span class="text-muted text-xs">· ${new Date(p.created).toLocaleString('uk-UA')}</span>
-            ${!p.approved ? '<span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">На розгляді</span>' : ''}
-            ${adminActions.length > 0 ? `<div class="ml-auto flex gap-2">${adminActions}</div>` : ''}
-            </div>
-            <h3 class="text-xl font-bold mb-1">${highlight(p.title,document.getElementById('search')?.value)}</h3>
-            <p class="text-gray-700 text-base leading-relaxed line-clamp-2">${formattedContent}</p>
-            <div class="flex items-center gap-3 mt-3">
-            <button class="text-sm text-primary hover:underline font-medium btn-comment flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                Коментарі (${(p.comments||[]).length})
+        <button class="join-btn">Приєднатися</button>
+      </div>
+
+      <!-- Main Body -->
+      <div class="flex">
+        <!-- Votes -->
+        <div class="vote-col flex flex-col items-center pr-3">
+          <button class="vote-btn up ${userVotesForPost === 1 ? 'active' : ''}">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+          <div class="vote-score">${p.score || 0}</div>
+          <button class="vote-btn down ${userVotesForPost === -1 ? 'active' : ''}">
+            <i class="fa-solid fa-arrow-down"></i>
+          </button>
+        </div>
+
+        <!-- Post Content -->
+        <div class="flex-1 space-y-2">
+          <h3 class="post-title" onclick="openComments(p)">
+            ${highlight(p.title, document.getElementById('search')?.value)}
+          </h3>
+
+          <p class="post-content">${formattedContent}</p>
+
+          <div class="flex items-center gap-2 text-xs text-gray-500 mt-2">
+            <img src="${avatarSrc}" class="w-5 h-5 rounded-full border border-gray-200" alt="">
+            <span class="cursor-pointer hover:underline text-gray-700 font-medium" onclick="openUserProfile('${author.id || author.googleId}')">u/${escapeHtml(author.name)}</span>
+            <span class="text-gray-400">•</span>
+            <span>${role.emoji || '📘'} ${role.name}</span>
+            ${!p.approved ? '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">На розгляді</span>' : ''}
+            ${adminActions ? `<div class="ml-auto flex gap-2">${adminActions}</div>` : ''}
+          </div>
+
+          <!-- Action Bar -->
+          <div class="action-bar flex items-center gap-5 text-sm text-gray-500 pt-2">
+            <button class="btn-comment hover:text-blue-600 flex items-center gap-1">
+              <i class="fa-regular fa-comment-dots"></i> ${(p.comments || []).length}
             </button>
-            </div>
+            <button class="hover:text-sky-500 flex items-center gap-1">
+              <i class="fa-regular fa-share-from-square"></i> Поділитись
+            </button>
+            <button class="hover:text-yellow-500 flex items-center gap-1">
+              <i class="fa-regular fa-award"></i> Нагорода
+            </button>
+            <button class="hover:text-red-500 flex items-center gap-1">
+              <i class="fa-regular fa-bookmark"></i> Зберегти
+            </button>
+          </div>
         </div>
-        <div class="text-right text-xs text-muted">Розділ: <strong class="text-gray-800">${escapeHtml(p.section||'Загальні')}</strong></div>
-        `;
+      </div>
+    `;
 
-        const up = el.querySelector('.arrow.up');
-        const down = el.querySelector('.arrow.down');
-        up.addEventListener('click', () => vote(p.id, 1, up, down));
-        down.addEventListener('click', () => vote(p.id, -1, down, up));
-        el.querySelector('.btn-comment').addEventListener('click', () => openComments(p));
-        container.appendChild(el);
-    });
+    const upBtn = el.querySelector('.vote-btn.up');
+    const downBtn = el.querySelector('.vote-btn.down');
+    upBtn.addEventListener('click', () => vote(p.id, 1, upBtn, downBtn));
+    downBtn.addEventListener('click', () => vote(p.id, -1, downBtn, upBtn));
+    el.querySelector('.btn-comment').addEventListener('click', () => openComments(p));
 
-    document.getElementById('stat-users').textContent = usersCache.length;
-    document.getElementById('stat-today').textContent = postsCache.filter(p => new Date(p.created).toDateString() === new Date().toDateString()).length;
+    container.appendChild(el);
+    fadeInElement(el);
+  });
+
+  renderPaginationControls();
+  document.getElementById('stat-users').textContent = usersCache.length;
+  document.getElementById('stat-today').textContent =
+    postsCache.filter(p => new Date(p.created).toDateString() === new Date().toDateString()).length;
+}
+
+
+// ===============================================
+// PAGINATION CONTROL RENDERER
+// ===============================================
+function renderPaginationControls() {
+  const container = document.getElementById(pagination.containerId);
+  if (!container) return;
+
+  const totalPages = Math.ceil(pagination.total / pagination.perPage);
+  if (totalPages <= 1) return (container.innerHTML = '');
+
+  let html = `
+    <div class="flex justify-center items-center gap-2 mt-6">
+      <button class="px-3 py-1 rounded-md border ${pagination.page === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}" ${pagination.page === 1 ? 'disabled' : ''} id="prevPage">←</button>
+      ${Array.from({ length: totalPages }, (_, i) => i + 1).map(p => `
+        <button class="px-3 py-1 rounded-md border ${p === pagination.page ? 'bg-primary text-white' : 'hover:bg-gray-100'}" data-page="${p}">${p}</button>
+      `).join('')}
+      <button class="px-3 py-1 rounded-md border ${pagination.page === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}" ${pagination.page === totalPages ? 'disabled' : ''} id="nextPage">→</button>
+    </div>
+  `;
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('[data-page]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      pagination.page = parseInt(btn.dataset.page);
+      renderPosts();
+    })
+  );
+  container.querySelector('#prevPage')?.addEventListener('click', () => {
+    if (pagination.page > 1) {
+      pagination.page--;
+      renderPosts();
+    }
+  });
+  container.querySelector('#nextPage')?.addEventListener('click', () => {
+    const totalPages = Math.ceil(pagination.total / pagination.perPage);
+    if (pagination.page < totalPages) {
+      pagination.page++;
+      renderPosts();
+    }
+  });
 }
 
 async function vote(postId, delta, btn, otherBtn) {
